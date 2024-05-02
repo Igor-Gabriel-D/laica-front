@@ -44,6 +44,7 @@ export class EnvironmentsComponent implements OnInit {
   filter: EnvironmentsFilter;
 
   constructor(
+    private messageService: MessageService,
     private environmentService: EnvironmentsService,
     private userService: UsersService
   ) { }
@@ -106,25 +107,59 @@ export class EnvironmentsComponent implements OnInit {
 
     return false;
 }
+  public restart() {
+    location.reload();
+  }
+
+  async getLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+       
+          this.environmentModel.latitude = position.coords.latitude,
+          this.environmentModel.longitude = position.coords.longitude
+      
+      });
+    } else {
+      console.log('Geolocalização não é suportada pelo seu navegador.');
+      this.environmentModel.latitude = 0.0000000,
+      this.environmentModel.latitude = 0.0000000
+  
+    }
+
+  }
 
   async createEnvironment(): Promise<EnvironmentResponse> {
     this.submitted = true;
-    this.environmentModel.latitude = -4.8115434;
-    this.environmentModel.longitude = -35.2023686;
     console.log("create environment");
     return new Promise((resolve) => {
       this.environmentService.createEnvironment(this.environmentModel).subscribe({
           next: (response: EnvironmentResponse) => {
+              this.environmentModel.name = "";
+              this.environmentModel.description = "";
+              this.addSuccessMessage('Novo ambiente criado com sucesso');
               resolve(response);
           },
           error: () => {
+              this.addErroMessage('Erro ao tentar criar novo ambiente');
               resolve(null);
           }
       })
 
     
   });
-    //aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+
+  }
+
+  async resCreateEnvironment(): Promise<void>{
+    const responseEnv = await this.createEnvironment();
+    if (!responseEnv) {
+      this.addErroMessage('Erro ao tentar criar novo ambiente.');
+    } else {
+      this.addSuccessMessage('Novo ambiente criado com sucesso.');
+      //this.hideDialog();
+      this.restart();
+    }
   }
 
   async searchEnvironments() {
@@ -157,8 +192,6 @@ export class EnvironmentsComponent implements OnInit {
     this.addUserDialog = false;
   }
   hideAddEnvirionmentDialog(){
-
-    // oiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
     this.addEnvirionmentDialog = false;
     this.submitted = false;
   }
@@ -176,8 +209,8 @@ export class EnvironmentsComponent implements OnInit {
     this.addUserDialog = true;
   }
   addEnvirionment(){
-    // oiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
     this.addEnvirionmentDialog = true;
+    this.getLocation();
   }
 
   onEnvironmentSelected() {
@@ -257,5 +290,13 @@ export class EnvironmentsComponent implements OnInit {
     this.usersCount = this.countEnvironmentUsers();
     this.environmentFrequenters = this.extratcEnvironmentFrequenters();
     this.environmentsManagers = this.extractEnvironmentManagers();
+  }
+
+  private addErroMessage(msg: string): void {
+    this.messageService.add({ severity: 'error', summary: 'Error', detail: msg, life: 3000 });
+  }
+
+  private addSuccessMessage(msg: string): void {
+      this.messageService.add({ severity: 'success', summary: 'Success', detail: msg, life: 3000 });
   }
 }
